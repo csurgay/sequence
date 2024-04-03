@@ -1,0 +1,233 @@
+<html>
+<head>
+	<meta charset='utf-8'>
+	<title>Cards</title>
+</head>
+<body onload="draw()">
+	<canvas id="mycanvas" style="border: solid 1px #ccc; background-color: #22CC22;" width="1550" height="800">
+		There's no Canvas support in this browser!
+	</canvas>
+</body>
+<script>
+const players = 3;
+var mode = 0; // 0: all playerCards hidden, 1: actPlayer cards revealed
+var actPlayer = 0;
+var deckCards = 104;
+const dd = 2;
+var canvas = document.getElementById("mycanvas");
+canvas.addEventListener("mouseup", doMouseUp, false);
+var ctx = canvas.getContext("2d");
+var colors = [[240,0,0],[0,240,0],[0,0,240]];
+var c = [
+	["WB","6D","7D","8D","9D","TD","QD","KD","AD","WB"]
+	,["5D","3H","2H","2S","3S","4S","5S","6S","7S","AC"]
+	,["4D","4H","KD","AD","AC","KC","QC","TC","8S","KC"]
+	,["3D","5H","QD","QH","TH","9H","8H","9C","9S","QC"]
+	,["2D","6H","TD","KH","3H","2H","7H","8C","TS","TC"]
+	,["AS","7H","9D","AH","4H","5H","6H","7C","QS","9C"]
+	,["KS","8H","8D","2C","3C","4C","5C","6C","KS","8C"]
+	,["QS","9H","7D","6D","5D","4D","3D","2D","AS","7C"]
+	,["TS","TH","QH","KH","AH","2C","3C","4C","5C","6C"]
+	,["WB","9S","8S","7S","6S","5S","4S","3S","2S","WB"]
+];
+var c0 = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
+var c1 = ["C", "D", "H", "S"];
+var deck = new Array(104);
+var cards = new Array(52);
+var cardsImage = new Array(52);
+ind = 0;
+for (var i=0; i<4; i++) {
+	for (var j=0; j<13; j++) {
+		cards[ind] = c0[j]+c1[i];
+		cardsImage[ind] = new Image();
+		cardsImage[ind].src = "PNG/"+cards[ind]+".png";
+		ind++;
+	}
+}
+var backSide = new Image();
+backSide.src = "PNG/"+"XX"+".png";
+ind = 0;
+for (var i=0; i<4; i++) {
+	for (var j=0; j<13; j++) {
+		deck[ind++] = c0[j]+c1[i];
+		deck[ind++] = c0[j]+c1[i];
+	}
+}
+var cc = new Array(10);
+for (var i=0; i<10; i++) {
+	cc[i] = new Array(10);
+	for (var j=0; j<10; j++) {
+		cc[i][j] = new Image();
+		cc[i][j].src = "PNGS/"+c[i][j]+".png";
+	}
+}
+var blobs = new Array(10);
+for (var i=0; i<10; i++) {
+	blobs[i] = new Array(10);
+	for (var j=0; j<10; j++) {
+//		blobs[i][j] = Math.floor(Math.random()*players);
+		blobs[i][j] = -1;
+	}
+}
+
+function dealCard() {
+	var r = Math.floor(Math.random()*deckCards);
+	returnCard = deck[r];
+	for (var i=r; i<103; i++)
+		deck[i] = deck[i+1];
+	deckCards--;
+	return returnCard;
+}
+var playerCards = new Array(players);
+for (var i=0; i<players; i++) {
+	playerCards[i] = new Array(6);
+	for (var j=0; j<6; j++)
+		playerCards[i][j] = dealCard();
+}
+
+function getCardsImage(cardString) {
+	for (var i=0; i<52; i++) {
+		if (cards[i]==cardString)
+			return cardsImage[i];
+	}
+}
+function drawBlob(p,a,b) {
+	ctx.fillStyle = "rgb("+colors[p][0]+","+colors[p][1]+","+colors[p][2]+")";
+	ctx.strokeStyle = "rgb("+colors[p][0]+","+colors[p][1]+","+colors[p][2]+")";
+	ctx.beginPath();
+	ctx.arc( a, b, 25, 0, 2 * Math.PI );
+	ctx.closePath();
+	ctx.lineWidth=1;
+	ctx.stroke();
+	ctx.fill()
+}
+function drawBlobLine(p,a,b) {
+	ctx.strokeStyle = "rgb("+colors[p][0]+","+colors[p][1]+","+colors[p][2]+")";
+	ctx.beginPath();
+	ctx.arc( a, b, 25, 0, 2 * Math.PI );
+	ctx.closePath();
+	ctx.lineWidth=10;
+	ctx.stroke();
+}
+
+// egész asztal kirajzolása
+function draw() {
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	for (var i=0; i<10; i++) {
+		for (var j=0; j<10; j++) {
+		   ctx.drawImage(cc[i][j],dd+i*(100+dd),canvas.height-120-j*(70+dd));
+		   if (blobs[i][j]!=-1) drawBlob(blobs[i][j],dd+i*(100+dd)+50,canvas.height-120-j*(70+dd)+35);
+		}
+	}
+	
+	// játékos kezek kirajzolása
+	for (var j=0; j<players; j++) {
+		for (var i=0; i<6; i++) {
+			cardShow = getCardsImage(playerCards[j][i]);
+			if ((j!=actPlayer)||(mode==0)) cardShow = backSide;
+			ctx.drawImage(cardShow, 1025+i*20, 20+j*180);
+		}
+	}
+	// játékos jelző korong
+	for (var i=0; i<players; i++)
+		drawBlobLine(i,1125,110+i*180);
+	drawBlob(actPlayer,1125,110+actPlayer*180);
+	
+	if (mode==1) {
+		for (var k=0; k<6; k++) {
+			for (var i=0; i<10; i++) {
+				for (var j=0; j<10; j++) {
+					if (c[i][j]==playerCards[actPlayer][k]) {
+						drawBlobLine(actPlayer,dd+i*(100+dd)+50,canvas.height-120-j*(70+dd)+35);
+					}
+				}
+			}
+		}
+	}
+//	ctx.fillStyle = "rgba(0,0,0,1)";
+//	ctx.font = "16px Arial";
+//	ctx.fillText("Step: ",50,canvas.height-5);
+}
+function getMousePos(canvas, evt) {
+	var rect = canvas.getBoundingClientRect();
+	return {
+		x: evt.clientX - rect.left,
+		y: evt.clientY - rect.top
+	};
+}
+function doMouseUp(evt) {
+	var pos = getMousePos(canvas, evt);
+	var x = Math.floor((pos.x-dd) / (100+dd));
+	var y = Math.floor((canvas.height-pos.y-120) / (70+dd))+1;
+	if (mode==1) {
+		var cardString = c[x][y];
+		console.log(cardString);
+		
+		// van-e ilyen kártyája
+		var hasThisCard = false;
+		var thisCardIndex = -1;
+		for (var i=0; i<6; i++) {
+			if (playerCards[actPlayer][i]==cardString) {
+				hasThisCard = true;
+				thisCardIndex = i;
+			}
+		}
+		
+		// van ilyen kártyája és üres a mező
+		if ((hasThisCard)&&(blobs[x][y]==-1)) {
+			for (var i=thisCardIndex; i<5; i++)
+				playerCards[actPlayer][i] = playerCards[actPlayer][i+1];
+			playerCards[actPlayer][5] = dealCard();
+			blobs[x][y] = actPlayer;
+			mode = 0;
+			actPlayer = (actPlayer+1)%players;
+		}
+		
+		// foglalt a mező...
+		else if (blobs[x][y]>-1) {
+			var hasOneEyed = false;
+			thisCardIndex = -1;
+			for (var i=0; i<6; i++) {
+				if ((playerCards[actPlayer][i]=="JS")||(playerCards[actPlayer][i]=="JH")) {
+					hasOneEyed = true;
+					thisCardIndex = i;
+				}
+			}
+			// de van egyszeműje
+			if (hasOneEyed) {
+				for (var i=thisCardIndex; i<5; i++)
+					playerCards[actPlayer][i] = playerCards[actPlayer][i+1];
+				playerCards[actPlayer][5] = dealCard();
+				blobs[x][y] = -1;
+				mode = 0;
+				actPlayer = (actPlayer+1)%players;
+			}
+		}
+		// üres a mező és nincs ilyenje...
+		else if (blobs[x][y]==-1) {
+			var hasTwoEyed = false;
+			thisCardIndex = -1;
+			for (var i=0; i<6; i++) {
+				if ((playerCards[actPlayer][i]=="JC")||(playerCards[actPlayer][i]=="JD")) {
+					hasTwoEyed = true;
+					thisCardIndex = i;
+				}
+			}
+			// de van kétszeműje
+			if (hasTwoEyed) {
+				for (var i=thisCardIndex; i<5; i++)
+					playerCards[actPlayer][i] = playerCards[actPlayer][i+1];
+				playerCards[actPlayer][5] = dealCard();
+				blobs[x][y] = actPlayer;
+				mode = 0;
+				actPlayer = (actPlayer+1)%players;
+			}
+		}
+	}
+	else if (mode==0) {
+		mode = 1;
+	}
+	draw();
+}
+</script>
+</html>
